@@ -15,6 +15,12 @@ import uploadsRoutes from './routes/uploads.routes.js';
 
 export const app = express();
 
+// Vercel puts one proxy hop in front of the function and sets X-Forwarded-For — trusting
+// exactly that one hop lets express-rate-limit (and req.ip generally) see the real client
+// IP instead of every request collapsing onto Vercel's edge IP and sharing one rate-limit
+// bucket. Not needed locally, where there's no proxy in front of the dev server.
+if (env.isProd) app.set('trust proxy', 1);
+
 app.use(cors({ origin: env.frontendUrl, credentials: true }));
 app.use(cookieParser());
 app.use(express.json({ limit: '1mb' }));
