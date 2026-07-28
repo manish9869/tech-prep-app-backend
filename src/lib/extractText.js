@@ -1,3 +1,4 @@
+import './pdfPolyfills.js';
 import mammoth from 'mammoth';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
 
