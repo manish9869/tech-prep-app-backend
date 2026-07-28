@@ -21,18 +21,32 @@ if (env.googleOAuthEnabled) {
         passport.authenticate('google', { scope: ['profile', 'email'], session: false })
     );
 
-    router.get(
-        '/google/callback',
-        passport.authenticate('google', { session: false, failureRedirect: `${env.frontendUrl}/login?error=google` }),
-        async (req, res, next) => {
-            try {
-                await issueSession(res, req.user);
-                res.redirect(`${env.frontendUrl}/oauth-complete`);
-            } catch (err) {
-                next(err);
+    router.get('/google/callback', (req, res, next) => {
+        // Not using passport's `failureRedirect` option here — it silently redirects on any
+        // auth failure without logging anything, which makes failures like a bad client
+        // secret or a mismatched redirect_uri invisible. This custom callback logs the real
+        // reason server-side and surfaces a short version in the redirect query string too.
+        passport.authenticate('google', { session: false }, async (err, user, info) => {
+            if (err) {
+                console.error('[google oauth] strategy error:', err);
+                return res.redirect(
+                    `${env.frontendUrl}/login?error=google&reason=${encodeURIComponent(err.message || 'strategy_error')}`
+                );
             }
-        }
-    );
+            if (!user) {
+                const reason = info?.message || req.query.error_description || req.query.error || 'unknown';
+                console.error('[google oauth] authentication failed:', { info, query: req.query });
+                return res.redirect(`${env.frontendUrl}/login?error=google&reason=${encodeURIComponent(reason)}`);
+            }
+            try {
+                await issueSession(res, user);
+                res.redirect(`${env.frontendUrl}/oauth-complete`);
+            } catch (sessionErr) {
+                console.error('[google oauth] issueSession failed:', sessionErr);
+                next(sessionErr);
+            }
+        })(req, res, next);
+    });
 } else {
     router.get('/google', (req, res) => {
         res.status(503).json({ error: 'Google OAuth is not configured on the server' });
