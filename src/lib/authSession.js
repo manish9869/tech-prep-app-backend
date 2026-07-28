@@ -8,7 +8,11 @@ export function refreshCookieOptions() {
     return {
         httpOnly: true,
         secure: env.isProd,
-        sameSite: 'lax',
+        // Frontend and backend are deployed on different vercel.app subdomains, which
+        // browsers treat as different sites — cross-site fetch/XHR only carries cookies
+        // when SameSite=None (and it requires Secure). Locally both run on localhost,
+        // so Lax is fine and avoids requiring HTTPS in dev.
+        sameSite: env.isProd ? 'none' : 'lax',
         path: '/api/auth',
         maxAge: env.jwtRefreshTtlDays * 24 * 60 * 60 * 1000,
     };
