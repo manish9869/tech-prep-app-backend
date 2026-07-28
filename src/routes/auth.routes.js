@@ -39,8 +39,14 @@ if (env.googleOAuthEnabled) {
                 return res.redirect(`${env.frontendUrl}/login?error=google&reason=${encodeURIComponent(reason)}`);
             }
             try {
-                await issueSession(res, user);
-                res.redirect(`${env.frontendUrl}/oauth-complete`);
+                // Also sets the httpOnly refresh cookie for future silent refreshes, but the
+                // frontend and backend are on different vercel.app subdomains — browsers that
+                // block third-party cookies (increasingly the default) will drop that cookie
+                // when OAuthComplete tries to send it back cross-site via fetch. Passing the
+                // access token straight through the redirect means completing login never
+                // depends on that cookie actually surviving the trip.
+                const accessToken = await issueSession(res, user);
+                res.redirect(`${env.frontendUrl}/oauth-complete?token=${encodeURIComponent(accessToken)}`);
             } catch (sessionErr) {
                 console.error('[google oauth] issueSession failed:', sessionErr);
                 next(sessionErr);
