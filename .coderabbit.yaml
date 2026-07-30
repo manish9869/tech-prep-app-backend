@@ -1,0 +1,40 @@
+language: en-US
+early_access: false
+
+reviews:
+  profile: chill
+  auto_review:
+    enabled: true
+    drafts: false
+  # Advisory only — CodeRabbit posts a review with comments but does not
+  # formally "Request changes" on the PR, so it never blocks the merge
+  # button. The human reviewer (repo owner) is the one who approves/merges.
+  request_changes_workflow: false
+  high_level_summary: true
+  poem: false
+  review_status: true
+  collapse_walkthrough: false
+  path_filters:
+    - "!node_modules/**"
+    - "!**/*.lock"
+    - "!package-lock.json"
+  path_instructions:
+    - path: "src/controllers/**/*.js"
+      instructions: >
+        This is an Express + PostgreSQL API. Flag any SQL string built via
+        template literals or concatenation with request-derived values
+        (SQL injection risk — must use parameterized queries), missing
+        auth/role checks on mutating routes, and missing input validation.
+    - path: "src/db/migrations/**"
+      instructions: >
+        Flag migrations that are not idempotent (should use IF NOT EXISTS /
+        IF EXISTS) and any migration that could lock or drop data on a
+        production table without a clear rollback path.
+    - path: "src/middleware/**/*.js"
+      instructions: >
+        Pay close attention to auth/JWT verification middleware — flag any
+        weakening of token validation, secret handling, or CORS
+        configuration.
+
+chat:
+  auto_reply: true
